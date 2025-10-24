@@ -143,3 +143,66 @@ impl PartialEq for TreeNode {
 ```
 
 Much simpler! The compiler generates all the boilerplate for you. 🎉
+
+<br><br><br>
+[2 tools called]
+
+This is the **`#[inline]` attribute** in Rust, which is a **compiler hint** for optimization.
+
+## What it does:
+
+`#[inline]` suggests to the compiler that it should try to **inline** the function at the call site instead of making a regular function call.
+
+### Without inlining:
+```rust
+fn add(a: i32, b: i32) -> i32 { a + b }
+let result = add(5, 3); // Calls the function
+```
+The CPU jumps to the function, executes it, and jumps back.
+
+### With inlining:
+```rust
+#[inline]
+fn add(a: i32, b: i32) -> i32 { a + b }
+let result = add(5, 3); // Compiler replaces this with: let result = 5 + 3;
+```
+The function code is copied directly into the caller, avoiding the function call overhead.
+
+## Context in your code:
+
+Based on the earlier version, it's likely applied to the `new` function:
+
+```rust
+impl TreeNode {
+    #[inline]
+    pub fn new(val: i32) -> Self {
+        TreeNode {
+            val,
+            left: None,
+            right: None,
+        }
+    }
+}
+```
+
+## When to use `#[inline]`:
+
+✅ **Good for:**
+- Small, frequently-called functions
+- Simple constructors (like `TreeNode::new`)
+- Getters/setters
+- Performance-critical hot paths
+
+❌ **Avoid for:**
+- Large functions (can bloat binary size)
+- Rarely-called functions
+
+## Types of inline:
+
+| Attribute | Meaning |
+|-----------|---------|
+| `#[inline]` | "Please try to inline this" (compiler may ignore) |
+| `#[inline(always)]` | "Always inline this" (forces inlining) |
+| `#[inline(never)]` | "Never inline this" |
+
+In most cases, the compiler is smart enough without hints, but `#[inline]` can help for small, hot functions like constructors.
