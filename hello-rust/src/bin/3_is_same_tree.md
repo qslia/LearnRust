@@ -62,3 +62,84 @@ The solution uses **recursive depth-first comparison**:
 - Space is used by the recursion call stack
 - In the worst case (skewed tree), this could be O(n)
 
+<br><br><br>
+This line is a **derive attribute** in Rust that automatically implements three traits for the `TreeNode` struct:
+
+```2:2:hello-rust/src/bin/3_is_same_tree.rs
+#[derive(Debug, PartialEq, Eq)]
+```
+
+Let me show you the context:
+
+```2:11:hello-rust/src/bin/3_is_same_tree.rs
+#[derive(Debug, PartialEq, Eq)]
+pub struct TreeNode {
+    pub val: i32,
+    pub left: Option<Rc<RefCell<TreeNode>>>,
+    pub right: Option<Rc<RefCell<TreeNode>>>,
+}
+
+impl TreeNode {
+    #[inline]
+    pub fn new(val: i32) -> Self {
+        TreeNode {
+```
+
+## Breakdown:
+
+- **`#[derive(...)]`** - Tells the Rust compiler to automatically generate trait implementations
+- **`Debug`** - Enables printing with `{:?}` and `{:#?}`
+- **`PartialEq`** - Enables equality comparisons with `==` and `!=`
+- **`Eq`** - Indicates the type has full equivalence (reflexive, symmetric, transitive)
+
+## What Each Trait Does:
+
+### 1. **`Debug`**
+Allows you to print the struct for debugging:
+```rust
+let node = TreeNode::new(5);
+println!("{:?}", node); // Works because of Debug
+```
+
+### 2. **`PartialEq`**
+Enables comparison operators:
+```rust
+let node1 = TreeNode::new(5);
+let node2 = TreeNode::new(5);
+if node1 == node2 { // Works because of PartialEq
+    println!("Equal!");
+}
+```
+
+### 3. **`Eq`**
+A marker trait that says "this type has full equality":
+- **`PartialEq`** = can compare, but might have weird cases (like `NaN != NaN` for floats)
+- **`Eq`** = all values can be compared reliably
+
+## Why Not Write These Manually?
+
+You *could* write them manually, but `derive` saves time:
+
+**Without derive:**
+```rust
+impl Debug for TreeNode {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        // 10+ lines of formatting code
+    }
+}
+
+impl PartialEq for TreeNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.val == other.val && 
+        self.left == other.left && 
+        self.right == other.right
+    }
+}
+```
+
+**With derive:**
+```rust
+#[derive(Debug, PartialEq, Eq)]
+```
+
+Much simpler! The compiler generates all the boilerplate for you. 🎉
