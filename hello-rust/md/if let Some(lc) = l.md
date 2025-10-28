@@ -176,3 +176,90 @@ If you want, I can also explain:
 * good naming conventions
 
 Just ask 😊
+
+<br><br>
+
+Good question —
+`let Some(rc) = node` is **pattern matching** in Rust, used to *unwrap* an `Option`.
+
+Let’s break it down carefully:
+
+---
+
+### 🔹 `Option` recap
+
+`Option<T>` is an enum that can be:
+
+```rust
+Some(value)   // means there is a value
+None          // means no value
+```
+
+So if `node` has type `Option<Rc<RefCell<TreeNode>>>`,
+it can either be:
+
+```rust
+Some(Rc<RefCell<TreeNode>>)
+```
+
+or
+
+```rust
+None
+```
+
+---
+
+### 🔹 What `let Some(rc) = node` does
+
+This line *tries* to match `node` against the pattern `Some(rc)`.
+
+* If `node` is `Some(x)`, it **extracts** the inner value `x` and binds it to the variable `rc`.
+* If `node` is `None`, the match **fails**, and normally Rust would throw an error if it’s used outside an `if let`.
+
+That’s why you’ll often see it used like this:
+
+```rust
+if let Some(rc) = node {
+    // here, rc is the inner Rc<RefCell<TreeNode>>
+    let n = rc.borrow();
+    // now we can access n.val, n.left, n.right, etc.
+}
+```
+
+---
+
+### 🔹 Analogy
+
+You can think of it like saying in English:
+
+> “If there *is* a node, call it `rc` and do something with it.”
+
+Otherwise, do nothing.
+
+---
+
+### 🔹 Example
+
+```rust
+let maybe_number = Some(10);
+
+if let Some(x) = maybe_number {
+    println!("The number is {}", x);
+} else {
+    println!("There is no number.");
+}
+```
+
+Output:
+
+```
+The number is 10
+```
+
+If `maybe_number` were `None`, the `else` branch would run.
+
+---
+
+Would you like me to also explain what `rc.borrow()` means in this code? (It’s closely related to how `Rc<RefCell<TreeNode>>` works.)
+
