@@ -263,3 +263,89 @@ If `maybe_number` were `None`, the `else` branch would run.
 
 Would you like me to also explain what `rc.borrow()` means in this code? (It’s closely related to how `Rc<RefCell<TreeNode>>` works.)
 
+<br><br>
+
+Yes 👍 absolutely — you **can** first check whether a node exists *before* unwrapping it.
+That’s often the cleanest and safest way to handle binary tree traversal in Rust.
+
+Let’s walk through a few clear ways to do that 👇
+
+---
+
+## 🧩 1. Simple existence check
+
+If you just want to know *whether* a node exists (not to use it yet):
+
+```rust
+if node.is_some() {
+    println!("Node exists!");
+} else {
+    println!("Node is None!");
+}
+```
+
+✅ `Option<T>` provides `.is_some()` and `.is_none()`:
+
+* `is_some()` → `true` if it’s `Some(...)`
+* `is_none()` → `true` if it’s `None`
+
+---
+
+## 🧩 2. Check then unwrap safely
+
+If you *also* want to use it when it exists, the common idiom is:
+
+```rust
+if let Some(rc) = node {
+    let n = rc.borrow();
+    println!("Value: {}", n.val);
+}
+```
+
+That’s just a shorter, pattern-matching version of this longer form:
+
+```rust
+if node.is_some() {
+    let rc = node.as_ref().unwrap();
+    let n = rc.borrow();
+    println!("Value: {}", n.val);
+}
+```
+
+But note ⚠️: `.unwrap()` will **panic** if `node` is `None`.
+That’s why `if let Some(...)` is safer and preferred — it only executes when `Some`.
+
+---
+
+## 🧩 3. Using `match` if you want both branches
+
+You can also do:
+
+```rust
+match node {
+    Some(rc) => {
+        let n = rc.borrow();
+        println!("val = {}", n.val);
+    }
+    None => {
+        println!("No node here!");
+    }
+}
+```
+
+This is explicit and works great when you need to handle both cases differently.
+
+---
+
+### ✅ Summary
+
+| Purpose                 | Best way                                       |
+| ----------------------- | ---------------------------------------------- |
+| Just check existence    | `if node.is_some()`                            |
+| Use node if exists      | `if let Some(rc) = node`                       |
+| Handle both Some & None | `match node { Some(...) => ..., None => ... }` |
+
+---
+
+Would you like me to show a **small working Rust example** that prints values only if nodes exist (like a mini traversal)?
+
