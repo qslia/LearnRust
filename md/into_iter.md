@@ -235,3 +235,161 @@ Ownership rules eliminate:
 ---
 
 If you want, I can show you a tiny program that prints when moves happen, so you can *see* moves in action. Just say **"show debugging version"**.
+
+<br>
+
+Sure — let’s break down `into_iter()` clearly.
+
+---
+
+### ✅ What `into_iter()` does
+
+`into_iter()` **consumes** the collection and turns it into an iterator that yields owned values.
+
+Example:
+
+```rust
+let v = vec![1, 2, 3];
+for x in v.into_iter() {
+    println!("{x}");
+}
+```
+
+After this loop, you **cannot use `v` anymore**, because `into_iter` *moves* (takes ownership of) the vector.
+
+---
+
+### Contrast with other iterators
+
+| Method        | What it yields          | Ownership behavior                        |
+| ------------- | ----------------------- | ----------------------------------------- |
+| `iter()`      | `&T` (shared reference) | Does **not** consume the collection       |
+| `iter_mut()`  | `&mut T` (mutable ref)  | Does **not** consume; allows modification |
+| `into_iter()` | `T` (owned value)       | **Consumes** the collection (moves data)  |
+
+---
+
+### How it's used in your code
+
+We convert `Vec<Vec<i32>>` into `Vec<(i32, i32)>`:
+
+```rust
+let mut ints: Vec<(i32, i32)> = intervals
+    .into_iter()          // consumes intervals and yields Vec<i32>
+    .map(|v| (v[0], v[1])) // map Vec<i32> -> (start, end)
+    .collect();           // collect into Vec<(i32, i32)>
+```
+
+* `intervals` (of type `Vec<Vec<i32>>`) is moved into the iterator.
+* Each `v` is a full owned `Vec<i32>` like `[start, end]`.
+* `map` extracts the elements and turns them into a tuple `(start, end)`.
+
+After `.into_iter()`, you **cannot** use `intervals` anymore — it has been consumed.
+
+---
+
+### Quick visual
+
+Before:
+
+```
+intervals = [[0, 30], [5, 10], [15, 20]]
+```
+
+After `.into_iter()`:
+
+```
+v = [0, 30]
+v = [5, 10]
+v = [15, 20]
+(intervals is now gone / moved)
+```
+
+---
+
+### TL;DR
+
+* `into_iter()` = "take ownership of each element and give it to me."
+* Use it when you no longer need the original container.
+
+Let me know if you want demonstration code comparing `iter()`, `iter_mut()`, and `into_iter()`—I can show a small playground example.
+
+<br>
+
+Short answer: **No**, `.map(|*v| (v[0], v[1]))` does **not** work for `Vec<Vec<i32>>`.
+
+---
+
+### Why?
+
+Because `v` in the `.map(|v| ...)` closure is **not** an array or a tuple — it's a `Vec<i32>`.
+You can do:
+
+```rust
+.map(|v| (v[0], v[1]))
+```
+
+because `v` is *owned* (`into_iter()` gives ownership), so you can index into it.
+
+But `|*v|` tries to *dereference pattern-match* `v` as something like `&[i32; 2]` (array reference), which is **not the type you have**.
+`Vec<i32>` is a **heap-allocated dynamic vector**, not a fixed-size array.
+
+---
+
+### Valid closure patterns
+
+| Code   | Works?      | Reason         |   |                                              |
+| ------ | ----------- | -------------- | - | -------------------------------------------- |
+| `.map( | v           | (v[0], v[1]))` | ✅ | `v` is owned (`Vec<i32>`), you index into it |
+| `.map( | ref v       | (v[0], v[1]))` | ✅ | `ref` borrows the `Vec`, but same logic      |
+| `.map( | v: Vec<i32> | (v[0], v[1]))` | ✅ | explicitly typed                             |
+
+---
+
+### What `|*v|` actually means
+
+`|*v|` tries to destructure a **reference** to some type.
+It only works when the iterator yields references (like when using `.iter()`):
+
+Example where `|&x|` works:
+
+```rust
+let nums = vec![1, 2, 3];
+nums.iter().map(|&x| x * 2).collect::<Vec<_>>();
+```
+
+Here `iter()` yields `&i32`, so `|&x|` matches the pattern.
+
+But in your case:
+
+* `into_iter()` yields `Vec<i32>`
+* Not `&Vec<i32>` or `[i32; 2]`
+
+So `|*v|` is mismatched.
+
+---
+
+### If the type was a fixed-size array (like `[[i32; 2]]`), you *could* destructure:
+
+```rust
+let intervals = vec![[0, 30], [5, 10], [15, 20]];
+
+intervals.into_iter().map(|[start, end]| (start, end));
+```
+
+But your input is `Vec<Vec<i32>>`, not `Vec<[i32; 2]>`.
+
+---
+
+### ✅ Best version for your case
+
+```rust
+let mut ints: Vec<(i32, i32)> = intervals
+    .into_iter()
+    .map(|v| (v[0], v[1]))
+    .collect();
+```
+
+---
+
+If you’d like, I can also show how to convert `Vec<Vec<i32>>` into a fixed `[i32; 2]` array so you *can* use destructuring.
